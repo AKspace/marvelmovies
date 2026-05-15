@@ -715,6 +715,8 @@ const MOVIES = [
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 
+let loadingDone = false;
+
 const state = {
   viewMode: "release",
   activePhase: "all",
@@ -796,7 +798,7 @@ function buildCardHTML(movie) {
   const ratingHTML = movie.imdb
     ? `<span class="card-rating">★ ${movie.imdb}</span>` : "";
   const heroTags = movie.heroes.slice(0, 2)
-    .map(h => `<span class="hero-tag">${h}</span>`).join("");
+    .map(h => `<span class="hero-tag">${esc(h)}</span>`).join("");
   const classifiedStamp = movie.comingSoon
     ? `<div class="classified-stamp">CLASSIFIED</div>` : "";
 
@@ -866,7 +868,7 @@ function renderTimeline() {
         </div>
       </div>`).join("");
 
-  observeCards();
+  if (loadingDone) observeCards();
 }
 
 let cardObserver = null;
@@ -1157,6 +1159,8 @@ function initLoadingScreen() {
 
   setTimeout(() => {
     document.getElementById("loading-screen").classList.add("hidden");
+    // Trigger card entrance animations after loading screen fades (0.8s transition)
+    setTimeout(() => { loadingDone = true; observeCards(); }, 900);
   }, 2500);
 }
 
@@ -1252,9 +1256,10 @@ function initEasterEggs() {
 
   document.getElementById("timeline").addEventListener("mouseover", e => {
     const card = e.target.closest(".movie-card");
-    if (!card) return;
+    if (!card || card._thanosDrift) return;
     const id = card.dataset.id;
     if (id === "infinity-war" || id === "endgame") {
+      card._thanosDrift = true;
       const siblings = [...card.parentElement.children];
       siblings.forEach((c, i) => {
         if (c !== card) {
@@ -1266,16 +1271,17 @@ function initEasterEggs() {
     }
   });
 
-  document.getElementById("timeline").addEventListener("mouseout", e => {
+  document.getElementById("timeline").addEventListener("mouseleave", e => {
     const card = e.target.closest(".movie-card");
     if (!card) return;
     const id = card.dataset.id;
     if (id === "infinity-war" || id === "endgame") {
+      card._thanosDrift = false;
       [...card.parentElement.children].forEach(c => {
         c.style.transform = "";
       });
     }
-  });
+  }, true);
 }
 
 // ── BOOT ───────────────────────────────────────────────────────────────────
