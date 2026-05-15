@@ -712,3 +712,531 @@ const MOVIES = [
     watchOrderNote: null
   }
 ];
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+
+const state = {
+  viewMode: "release",
+  activePhase: "all",
+  activeStone: null,
+  activeHero: "all",
+  searchQuery: "",
+  activeYearMin: null,
+  activeYearMax: null,
+  modalOpen: null,
+  audioPlaying: false
+};
+
+function populateHeroDropdown() {
+  const heroes = new Set();
+  MOVIES.forEach(m => m.heroes.forEach(h => heroes.add(h)));
+  const select = document.getElementById("hero-select");
+  [...heroes].sort().forEach(hero => {
+    const opt = document.createElement("option");
+    opt.value = hero;
+    opt.textContent = hero.toUpperCase();
+    select.appendChild(opt);
+  });
+}
+
+function updateHudReadout(visibleCount) {
+  const stoneLabel = state.activeStone ? ` // STONE: ${state.activeStone.toUpperCase()}` : "";
+  const phaseLabel = state.activePhase !== "all" ? ` // PHASE: ${state.activePhase}` : " // PHASE: ALL";
+  const modeLabel = state.viewMode === "chronological" ? " // MODE: CHRONO" : " // MODE: RELEASE";
+  document.getElementById("hud-readout").textContent =
+    `DISPLAYING: ${visibleCount} FILMS${phaseLabel}${stoneLabel}${modeLabel}`;
+}
+
+function updateHeroStat() {
+  document.getElementById("stat-movies").textContent = MOVIES.filter(m => !m.comingSoon).length;
+}
+
+// ── UI ─────────────────────────────────────────────────────────────────────
+
+function getFilteredMovies() {
+  const q = state.searchQuery.toLowerCase();
+  return MOVIES
+    .filter(m => {
+      if (state.activePhase !== "all" && m.phase !== Number(state.activePhase)) return false;
+      if (state.activeStone && m.infinityStone !== state.activeStone) return false;
+      if (state.activeHero !== "all" && !m.heroes.includes(state.activeHero)) return false;
+      if (q && !m.title.toLowerCase().includes(q) &&
+               !m.description.toLowerCase().includes(q) &&
+               !m.director.toLowerCase().includes(q) &&
+               !m.heroes.some(h => h.toLowerCase().includes(q))) return false;
+      return true;
+    })
+    .sort((a, b) => state.viewMode === "chronological"
+      ? a.chronologicalOrder - b.chronologicalOrder
+      : a.releaseOrder - b.releaseOrder);
+}
+
+function getStoneBadgeColor(stone) {
+  const map = {
+    space: "#00d4ff",
+    mind: "#ffe600",
+    reality: "#e3000f",
+    power: "#7b2fff",
+    time: "#00ff88",
+    soul: "#ff6b00"
+  };
+  return map[stone] || "#fff";
+}
+
+function buildCardHTML(movie) {
+  const stoneBadge = movie.infinityStone
+    ? `<span class="stone-badge" style="background:${getStoneBadgeColor(movie.infinityStone)}"></span>` : "";
+  const ratingHTML = movie.imdb
+    ? `<span class="card-rating">★ ${movie.imdb}</span>` : "";
+  const heroTags = movie.heroes.slice(0, 2)
+    .map(h => `<span class="hero-tag">${h}</span>`).join("");
+  const classifiedStamp = movie.comingSoon
+    ? `<div class="classified-stamp">CLASSIFIED</div>` : "";
+
+  let posterHTML;
+  if (movie.poster) {
+    posterHTML = `<img class="card-poster" src="${movie.poster}" alt="${movie.title}" loading="lazy"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="card-poster-fallback" style="background:${movie.posterFallback};display:none">${movie.title}</div>`;
+  } else {
+    posterHTML = `<div class="card-poster-fallback" style="background:${movie.posterFallback}">${movie.title}</div>`;
+  }
+
+  return `
+    <div class="movie-card${movie.comingSoon ? " coming-soon" : ""}" data-id="${movie.id}">
+      ${stoneBadge}
+      <span class="phase-badge">P${movie.phase}</span>
+      ${posterHTML}
+      ${classifiedStamp}
+      <div class="card-body">
+        <div class="card-title">${movie.title}</div>
+        <div class="card-meta">
+          <span class="card-year">${movie.year}</span>
+          ${ratingHTML}
+        </div>
+        <div class="card-heroes">${heroTags}</div>
+      </div>
+    </div>`;
+}
+
+function renderTimeline() {
+  const timeline = document.getElementById("timeline");
+  const filtered = getFilteredMovies();
+
+  updateHudReadout(filtered.length);
+
+  if (filtered.length === 0) {
+    timeline.innerHTML = `<div class="no-results">NO FILMS MATCH CURRENT PARAMETERS</div>`;
+    return;
+  }
+
+  const phases = {};
+  filtered.forEach(m => {
+    if (!phases[m.phase]) phases[m.phase] = [];
+    phases[m.phase].push(m);
+  });
+
+  const phaseNames = {
+    1: "PHASE ONE",
+    2: "PHASE TWO",
+    3: "PHASE THREE",
+    4: "PHASE FOUR",
+    5: "PHASE FIVE",
+    6: "PHASE SIX — COMING SOON"
+  };
+
+  timeline.innerHTML = Object.entries(phases)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([phase, movies]) => `
+      <div class="phase-section">
+        <div class="phase-header">
+          <span class="phase-title">${phaseNames[phase] || "PHASE " + phase}</span>
+          <div class="phase-line"></div>
+          <span class="phase-count">${movies.length} FILM${movies.length !== 1 ? "S" : ""}</span>
+        </div>
+        <div class="cards-row">
+          ${movies.map(buildCardHTML).join("")}
+        </div>
+      </div>`).join("");
+
+  timeline.querySelectorAll(".movie-card").forEach(card => {
+    card.addEventListener("click", () => openModal(card.dataset.id));
+  });
+
+  observeCards();
+}
+
+function observeCards() {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add("visible");
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll(".movie-card, .phase-header").forEach(el => {
+    if (!el.classList.contains("visible")) io.observe(el);
+  });
+}
+
+function wireControls() {
+  document.getElementById("search-input").addEventListener("input", e => {
+    state.searchQuery = e.target.value;
+    renderTimeline();
+  });
+
+  document.getElementById("phase-pills").addEventListener("click", e => {
+    const pill = e.target.closest(".phase-pill");
+    if (!pill) return;
+    document.querySelectorAll(".phase-pill").forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    state.activePhase = pill.dataset.phase;
+    renderTimeline();
+  });
+
+  document.getElementById("hero-select").addEventListener("change", e => {
+    state.activeHero = e.target.value;
+    renderTimeline();
+  });
+
+  document.getElementById("view-toggle").addEventListener("change", e => {
+    state.viewMode = e.target.checked ? "chronological" : "release";
+    renderTimeline();
+  });
+
+  document.getElementById("stones-nav").addEventListener("click", e => {
+    const btn = e.target.closest(".stone-btn");
+    if (!btn) return;
+    document.querySelectorAll(".stone-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const stone = btn.dataset.stone;
+    state.activeStone = stone === "all" ? null : stone;
+    renderTimeline();
+  });
+}
+
+function wire3DTilt() {
+  if (navigator.maxTouchPoints > 0) return;
+
+  document.addEventListener("mousemove", e => {
+    const card = e.target.closest(".movie-card");
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    card.style.transform = `perspective(600px) rotateY(${dx * 8}deg) rotateX(${-dy * 8}deg) scale(1.04)`;
+  });
+
+  document.getElementById("timeline").addEventListener("mouseleave", e => {
+    const card = e.target.closest(".movie-card");
+    if (card) card.style.transform = "";
+  }, true);
+}
+
+function buildRatingRing(rating) {
+  if (!rating) return "";
+  const r = 20;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (rating / 10) * circ;
+  return `
+    <div class="rating-ring">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle class="ring-bg" cx="26" cy="26" r="${r}"/>
+        <circle class="ring-fill" cx="26" cy="26" r="${r}"
+          stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"/>
+      </svg>
+      <div class="rating-num">${rating}</div>
+    </div>`;
+}
+
+function openModal(movieId) {
+  const movie = MOVIES.find(m => m.id === movieId);
+  if (!movie) return;
+
+  state.modalOpen = movieId;
+  document.body.style.overflow = "hidden";
+
+  let posterHTML;
+  if (movie.poster) {
+    posterHTML = `<img class="modal-poster" src="${movie.poster}" alt="${movie.title}"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="modal-poster-fallback" style="background:${movie.posterFallback};display:none">${movie.title}</div>`;
+  } else {
+    posterHTML = `<div class="modal-poster-fallback" style="background:${movie.posterFallback}">${movie.title}</div>`;
+  }
+
+  const stoneLine = movie.infinityStone
+    ? `<div class="modal-stone-badge">
+         <span class="modal-stone-gem" style="background:${getStoneBadgeColor(movie.infinityStone)}"></span>
+         ${movie.infinityStone.toUpperCase()} STONE
+       </div>` : "";
+
+  const heroTags = movie.heroes.map(h => `<span class="modal-hero-tag">${h}</span>`).join("");
+  const ratingHTML = movie.imdb ? buildRatingRing(movie.imdb) : "";
+  const watchNote = movie.watchOrderNote
+    ? `<div class="modal-watch-note">${movie.watchOrderNote}</div>` : "";
+
+  document.getElementById("modal-content").innerHTML = `
+    <div class="modal-inner">
+      <div>${posterHTML}</div>
+      <div class="modal-info">
+        <div id="modal-title" class="modal-phase">PHASE ${movie.phase} // ${movie.year}</div>
+        <h2 class="modal-title">${movie.title}</h2>
+        <div class="modal-meta">
+          <span>🎬 ${movie.director}</span>
+          <span>⏱ ${movie.duration}</span>
+        </div>
+        <div class="modal-rating-wrap">
+          ${ratingHTML}
+          ${movie.imdb ? `<span class="modal-rating-label">IMDB RATING</span>` : ""}
+        </div>
+        <p class="modal-description">${movie.description}</p>
+        <div class="modal-heroes">${heroTags}</div>
+        ${stoneLine}
+        ${watchNote}
+      </div>
+    </div>`;
+
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function closeModal() {
+  state.modalOpen = null;
+  document.body.style.overflow = "";
+  document.getElementById("modal-overlay").classList.remove("open");
+}
+
+function wireModal() {
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal-overlay").addEventListener("click", e => {
+    if (e.target === document.getElementById("modal-overlay")) closeModal();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && state.modalOpen) closeModal();
+  });
+}
+
+function initParticles() {
+  const canvas = document.getElementById("particle-canvas");
+  const ctx = canvas.getContext("2d");
+
+  let W, H, stars = [], orbs = [];
+  let lastFrame = 0;
+  const FRAME_MS = 1000 / 30;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function randomStar() {
+    return {
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.5 + 0.5,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
+      alpha: Math.random() * 0.5 + 0.2,
+      color: Math.random() > 0.8 ? "#00d4ff" : "#ffffff"
+    };
+  }
+
+  function randomOrb(i) {
+    const colors = [
+      "rgba(227,0,15,",
+      "rgba(0,212,255,",
+      "rgba(240,177,50,",
+      "rgba(123,47,255,",
+      "rgba(26,111,196,"
+    ];
+    return {
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 120 + 60,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      t: Math.random() * Math.PI * 2,
+      ts: (Math.random() * 0.003 + 0.001) * (Math.random() > 0.5 ? 1 : -1),
+      color: colors[i % colors.length]
+    };
+  }
+
+  resize();
+  window.addEventListener("resize", resize);
+
+  for (let i = 0; i < 200; i++) stars.push(randomStar());
+  for (let i = 0; i < 8; i++) orbs.push(randomOrb(i));
+
+  let running = true;
+
+  function draw(ts) {
+    if (!running) return;
+    if (ts - lastFrame < FRAME_MS) { requestAnimationFrame(draw); return; }
+    lastFrame = ts;
+
+    ctx.clearRect(0, 0, W, H);
+
+    orbs.forEach(o => {
+      o.t += o.ts;
+      o.x += Math.sin(o.t) * 0.4 + o.vx;
+      o.y += Math.cos(o.t * 0.7) * 0.3 + o.vy;
+      if (o.x < -o.r) o.x = W + o.r;
+      if (o.x > W + o.r) o.x = -o.r;
+      if (o.y < -o.r) o.y = H + o.r;
+      if (o.y > H + o.r) o.y = -o.r;
+
+      const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      g.addColorStop(0, o.color + "0.06)");
+      g.addColorStop(1, o.color + "0)");
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    });
+
+    stars.forEach(s => {
+      s.x += s.vx;
+      s.y += s.vy;
+      if (s.x < 0) s.x = W; if (s.x > W) s.x = 0;
+      if (s.y < 0) s.y = H; if (s.y > H) s.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = s.color;
+      ctx.globalAlpha = s.alpha;
+      ctx.fill();
+    });
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      running = false;
+    } else {
+      running = true;
+      requestAnimationFrame(draw);
+    }
+  });
+
+  requestAnimationFrame(draw);
+}
+
+function initLoadingScreen() {
+  const text = "INITIALIZING STARK NETWORK...";
+  const el = document.getElementById("loading-text");
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += text[i];
+    i++;
+    if (i >= text.length) clearInterval(interval);
+  }, 60);
+
+  setTimeout(() => {
+    document.getElementById("loading-screen").classList.add("hidden");
+  }, 2500);
+}
+
+function initAudio() {
+  const audio = new Audio("https://cdn.pixabay.com/download/audio/2022/11/17/audio_febc508520.mp3");
+  audio.loop = true;
+  audio.volume = 0.25;
+
+  const fab = document.getElementById("audio-fab");
+  fab.addEventListener("click", () => {
+    if (state.audioPlaying) {
+      audio.pause();
+      fab.classList.remove("playing");
+    } else {
+      audio.play().catch(() => {});
+      fab.classList.add("playing");
+    }
+    state.audioPlaying = !state.audioPlaying;
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && state.audioPlaying) audio.pause();
+    else if (!document.hidden && state.audioPlaying) audio.play().catch(() => {});
+  });
+}
+
+function flashEasterEgg(message) {
+  const overlay = document.getElementById("easter-egg-overlay");
+  document.getElementById("easter-egg-text").textContent = message;
+  overlay.classList.add("show");
+  setTimeout(() => overlay.classList.remove("show"), 2500);
+}
+
+function initEasterEggs() {
+  const konami = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+  let konamiIdx = 0;
+  document.addEventListener("keydown", e => {
+    if (e.key === konami[konamiIdx]) {
+      konamiIdx++;
+      if (konamiIdx === konami.length) {
+        konamiIdx = 0;
+        flashEasterEgg("⚡ AVENGERS ASSEMBLE ⚡");
+      }
+    } else {
+      konamiIdx = 0;
+    }
+  });
+
+  let reactorClicks = 0;
+  document.getElementById("hud-reactor").addEventListener("click", () => {
+    reactorClicks++;
+    if (reactorClicks >= 10) {
+      reactorClicks = 0;
+      flashEasterEgg("J.A.R.V.I.S. ONLINE // WELCOME BACK, MR. STARK");
+    }
+  });
+
+  document.getElementById("timeline").addEventListener("mouseover", e => {
+    const card = e.target.closest(".movie-card");
+    if (!card) return;
+    const id = card.dataset.id;
+    if (id === "infinity-war" || id === "endgame") {
+      const siblings = [...card.parentElement.children];
+      siblings.forEach((c, i) => {
+        if (c !== card) {
+          const dir = i % 2 === 0 ? 1 : -1;
+          c.style.transition = "transform 0.5s ease";
+          c.style.transform = `translateX(${dir * 6}px)`;
+        }
+      });
+    }
+  });
+
+  document.getElementById("timeline").addEventListener("mouseout", e => {
+    const card = e.target.closest(".movie-card");
+    if (!card) return;
+    const id = card.dataset.id;
+    if (id === "infinity-war" || id === "endgame") {
+      [...card.parentElement.children].forEach(c => {
+        c.style.transform = "";
+      });
+    }
+  });
+}
+
+// ── BOOT ───────────────────────────────────────────────────────────────────
+
+function init() {
+  initLoadingScreen();
+  initParticles();
+  populateHeroDropdown();
+  updateHeroStat();
+  wireControls();
+  wireModal();
+  wire3DTilt();
+  initAudio();
+  initEasterEggs();
+  renderTimeline();
+}
+
+document.addEventListener("DOMContentLoaded", init);
