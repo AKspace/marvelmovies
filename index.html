@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCU Timeline — Stark Industries</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="arc-reactor"></div>
+    <p class="loading-text" id="loading-text"></p>
+  </div>
+
+  <!-- Particle Canvas -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- Hero Section -->
+  <section id="hero">
+    <div class="hero-content">
+      <div class="hero-subtitle">STARK INDUSTRIES // CLASSIFIED ARCHIVE</div>
+      <h1 class="hero-title">MARVEL CINEMATIC<br>UNIVERSE</h1>
+      <div class="hero-tagline">TIMELINE CLASSIFIED // PHASES I–VI</div>
+      <div class="hero-stats">
+        <span class="stat"><span class="stat-num" id="stat-movies">0</span> FILMS</span>
+        <span class="stat-divider">|</span>
+        <span class="stat"><span class="stat-num">6</span> PHASES</span>
+        <span class="stat-divider">|</span>
+        <span class="stat"><span class="stat-num">17</span> YEARS</span>
+      </div>
+    </div>
+    <div class="scroll-chevron">&#8964;</div>
+  </section>
+
+  <!-- JARVIS HUD Strip -->
+  <div id="jarvis-hud">
+    <div class="hud-left">
+      <div class="arc-reactor-small" id="hud-reactor"></div>
+      <span class="hud-label">J.A.R.V.I.S</span>
+    </div>
+    <div class="hud-center">
+      <span class="hud-readout" id="hud-readout">INITIALIZING DATABASE...</span>
+    </div>
+    <div class="hud-right">
+      <div class="hud-bars">
+        <div class="hud-bar"></div>
+        <div class="hud-bar"></div>
+        <div class="hud-bar"></div>
+      </div>
+      <span class="hud-status">ONLINE</span>
+    </div>
+    <div class="hud-scanline"></div>
+  </div>
+
+  <!-- Main App -->
+  <main id="app">
+    <!-- Controls Bar -->
+    <div id="controls">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="search-input" placeholder="SEARCH ARCHIVE..." autocomplete="off">
+      </div>
+      <div class="phase-pills" id="phase-pills">
+        <button class="phase-pill active" data-phase="all">ALL</button>
+        <button class="phase-pill" data-phase="1">I</button>
+        <button class="phase-pill" data-phase="2">II</button>
+        <button class="phase-pill" data-phase="3">III</button>
+        <button class="phase-pill" data-phase="4">IV</button>
+        <button class="phase-pill" data-phase="5">V</button>
+        <button class="phase-pill" data-phase="6">VI</button>
+      </div>
+      <select id="hero-select">
+        <option value="all">ALL HEROES</option>
+      </select>
+      <div class="view-toggle">
+        <span class="toggle-label">RELEASE</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="view-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">CHRONO</span>
+      </div>
+    </div>
+
+    <!-- Infinity Stones Nav -->
+    <div id="stones-nav">
+      <button class="stone-btn active" data-stone="all">
+        <span class="stone-gem all-stone"></span>
+        <span class="stone-name">ALL</span>
+      </button>
+      <button class="stone-btn" data-stone="space">
+        <span class="stone-gem space-stone"></span>
+        <span class="stone-name">SPACE</span>
+      </button>
+      <button class="stone-btn" data-stone="mind">
+        <span class="stone-gem mind-stone"></span>
+        <span class="stone-name">MIND</span>
+      </button>
+      <button class="stone-btn" data-stone="reality">
+        <span class="stone-gem reality-stone"></span>
+        <span class="stone-name">REALITY</span>
+      </button>
+      <button class="stone-btn" data-stone="power">
+        <span class="stone-gem power-stone"></span>
+        <span class="stone-name">POWER</span>
+      </button>
+      <button class="stone-btn" data-stone="time">
+        <span class="stone-gem time-stone"></span>
+        <span class="stone-name">TIME</span>
+      </button>
+      <button class="stone-btn" data-stone="soul">
+        <span class="stone-gem soul-stone"></span>
+        <span class="stone-name">SOUL</span>
+      </button>
+    </div>
+
+    <!-- Timeline -->
+    <div id="timeline"></div>
+  </main>
+
+  <!-- Movie Modal -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <button id="modal-close">&#10005;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Audio FAB -->
+  <button id="audio-fab" title="Toggle Ambient Audio">
+    <div class="fab-reactor"></div>
+    <div class="fab-ring"></div>
+  </button>
+
+  <!-- Easter Egg Overlay -->
+  <div id="easter-egg-overlay">
+    <div class="easter-egg-text" id="easter-egg-text"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
