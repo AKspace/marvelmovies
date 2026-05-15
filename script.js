@@ -721,8 +721,6 @@ const state = {
   activeStone: null,
   activeHero: "all",
   searchQuery: "",
-  activeYearMin: null,
-  activeYearMax: null,
   modalOpen: null,
   audioPlaying: false
 };
@@ -752,6 +750,15 @@ function updateHeroStat() {
 }
 
 // ── UI ─────────────────────────────────────────────────────────────────────
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function getFilteredMovies() {
   const q = state.searchQuery.toLowerCase();
@@ -795,11 +802,11 @@ function buildCardHTML(movie) {
 
   let posterHTML;
   if (movie.poster) {
-    posterHTML = `<img class="card-poster" src="${movie.poster}" alt="${movie.title}" loading="lazy"
+    posterHTML = `<img class="card-poster" src="${movie.poster}" alt="${esc(movie.title)}" loading="lazy"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="card-poster-fallback" style="background:${movie.posterFallback};display:none">${movie.title}</div>`;
+      <div class="card-poster-fallback" style="background:${movie.posterFallback};display:none">${esc(movie.title)}</div>`;
   } else {
-    posterHTML = `<div class="card-poster-fallback" style="background:${movie.posterFallback}">${movie.title}</div>`;
+    posterHTML = `<div class="card-poster-fallback" style="background:${movie.posterFallback}">${esc(movie.title)}</div>`;
   }
 
   return `
@@ -809,9 +816,9 @@ function buildCardHTML(movie) {
       ${posterHTML}
       ${classifiedStamp}
       <div class="card-body">
-        <div class="card-title">${movie.title}</div>
+        <div class="card-title">${esc(movie.title)}</div>
         <div class="card-meta">
-          <span class="card-year">${movie.year}</span>
+          <span class="card-year">${esc(movie.year)}</span>
           ${ratingHTML}
         </div>
         <div class="card-heroes">${heroTags}</div>
@@ -859,25 +866,24 @@ function renderTimeline() {
         </div>
       </div>`).join("");
 
-  timeline.querySelectorAll(".movie-card").forEach(card => {
-    card.addEventListener("click", () => openModal(card.dataset.id));
-  });
-
   observeCards();
 }
 
+let cardObserver = null;
+
 function observeCards() {
-  const io = new IntersectionObserver((entries) => {
+  if (cardObserver) cardObserver.disconnect();
+  cardObserver = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
         e.target.classList.add("visible");
-        io.unobserve(e.target);
+        cardObserver.unobserve(e.target);
       }
     });
   }, { threshold: 0.1 });
 
   document.querySelectorAll(".movie-card, .phase-header").forEach(el => {
-    if (!el.classList.contains("visible")) io.observe(el);
+    if (!el.classList.contains("visible")) cardObserver.observe(el);
   });
 }
 
@@ -915,6 +921,11 @@ function wireControls() {
     state.activeStone = stone === "all" ? null : stone;
     renderTimeline();
   });
+
+  document.getElementById("timeline").addEventListener("click", e => {
+    const card = e.target.closest(".movie-card");
+    if (card && !card.classList.contains("coming-soon")) openModal(card.dataset.id);
+  });
 }
 
 function wire3DTilt() {
@@ -930,6 +941,11 @@ function wire3DTilt() {
     const dy = (e.clientY - cy) / (rect.height / 2);
     card.style.transform = `perspective(600px) rotateY(${dx * 8}deg) rotateX(${-dy * 8}deg) scale(1.04)`;
   });
+
+  document.addEventListener("mouseleave", e => {
+    const card = e.target.closest(".movie-card");
+    if (card) card.style.transform = "";
+  }, true);
 
   document.getElementById("timeline").addEventListener("mouseleave", e => {
     const card = e.target.closest(".movie-card");
@@ -962,11 +978,11 @@ function openModal(movieId) {
 
   let posterHTML;
   if (movie.poster) {
-    posterHTML = `<img class="modal-poster" src="${movie.poster}" alt="${movie.title}"
+    posterHTML = `<img class="modal-poster" src="${movie.poster}" alt="${esc(movie.title)}"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="modal-poster-fallback" style="background:${movie.posterFallback};display:none">${movie.title}</div>`;
+      <div class="modal-poster-fallback" style="background:${movie.posterFallback};display:none">${esc(movie.title)}</div>`;
   } else {
-    posterHTML = `<div class="modal-poster-fallback" style="background:${movie.posterFallback}">${movie.title}</div>`;
+    posterHTML = `<div class="modal-poster-fallback" style="background:${movie.posterFallback}">${esc(movie.title)}</div>`;
   }
 
   const stoneLine = movie.infinityStone
@@ -975,26 +991,26 @@ function openModal(movieId) {
          ${movie.infinityStone.toUpperCase()} STONE
        </div>` : "";
 
-  const heroTags = movie.heroes.map(h => `<span class="modal-hero-tag">${h}</span>`).join("");
+  const heroTags = movie.heroes.map(h => `<span class="modal-hero-tag">${esc(h)}</span>`).join("");
   const ratingHTML = movie.imdb ? buildRatingRing(movie.imdb) : "";
   const watchNote = movie.watchOrderNote
-    ? `<div class="modal-watch-note">${movie.watchOrderNote}</div>` : "";
+    ? `<div class="modal-watch-note">${esc(movie.watchOrderNote)}</div>` : "";
 
   document.getElementById("modal-content").innerHTML = `
     <div class="modal-inner">
       <div>${posterHTML}</div>
       <div class="modal-info">
-        <div id="modal-title" class="modal-phase">PHASE ${movie.phase} // ${movie.year}</div>
-        <h2 class="modal-title">${movie.title}</h2>
+        <div class="modal-phase">PHASE ${movie.phase} // ${movie.year}</div>
+        <h2 id="modal-title" class="modal-title">${esc(movie.title)}</h2>
         <div class="modal-meta">
-          <span>🎬 ${movie.director}</span>
-          <span>⏱ ${movie.duration}</span>
+          <span>🎬 ${esc(movie.director)}</span>
+          <span>⏱ ${esc(movie.duration)}</span>
         </div>
         <div class="modal-rating-wrap">
           ${ratingHTML}
           ${movie.imdb ? `<span class="modal-rating-label">IMDB RATING</span>` : ""}
         </div>
-        <p class="modal-description">${movie.description}</p>
+        <p class="modal-description">${esc(movie.description)}</p>
         <div class="modal-heroes">${heroTags}</div>
         ${stoneLine}
         ${watchNote}
@@ -1072,10 +1088,11 @@ function initParticles() {
   for (let i = 0; i < 8; i++) orbs.push(randomOrb(i));
 
   let running = true;
+  let rafId = null;
 
   function draw(ts) {
     if (!running) return;
-    if (ts - lastFrame < FRAME_MS) { requestAnimationFrame(draw); return; }
+    if (ts - lastFrame < FRAME_MS) { rafId = requestAnimationFrame(draw); return; }
     lastFrame = ts;
 
     ctx.clearRect(0, 0, W, H);
@@ -1112,19 +1129,20 @@ function initParticles() {
     });
 
     ctx.globalAlpha = 1;
-    requestAnimationFrame(draw);
+    rafId = requestAnimationFrame(draw);
   }
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       running = false;
+      cancelAnimationFrame(rafId);
     } else {
       running = true;
-      requestAnimationFrame(draw);
+      rafId = requestAnimationFrame(draw);
     }
   });
 
-  requestAnimationFrame(draw);
+  rafId = requestAnimationFrame(draw);
 }
 
 function initLoadingScreen() {
