@@ -1161,25 +1161,61 @@ function initLoadingScreen() {
 }
 
 function initAudio() {
-  const audio = new Audio("https://cdn.pixabay.com/download/audio/2022/11/17/audio_febc508520.mp3");
-  audio.loop = true;
-  audio.volume = 0.25;
+  let ctx = null;
+  let nodes = [];
+
+  function startAmbient() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ctx.createGain();
+    master.gain.value = 0.18;
+    master.connect(ctx.destination);
+
+    // Low sub-bass drone
+    const freqs = [55, 110, 164.81, 220];
+    freqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i % 2 === 0 ? "sine" : "triangle";
+      osc.frequency.value = freq;
+      gain.gain.value = i === 0 ? 0.5 : 0.15;
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start();
+      nodes.push(osc, gain);
+    });
+
+    // Slow LFO pulse on master for breathing effect
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.08;
+    lfoGain.gain.value = 0.06;
+    lfo.connect(lfoGain);
+    lfoGain.connect(master.gain);
+    lfo.start();
+    nodes.push(lfo, lfoGain);
+  }
+
+  function stopAmbient() {
+    nodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
+    nodes = [];
+    if (ctx) { ctx.close(); ctx = null; }
+  }
 
   const fab = document.getElementById("audio-fab");
   fab.addEventListener("click", () => {
     if (state.audioPlaying) {
-      audio.pause();
+      stopAmbient();
       fab.classList.remove("playing");
     } else {
-      audio.play().catch(() => {});
+      startAmbient();
       fab.classList.add("playing");
     }
     state.audioPlaying = !state.audioPlaying;
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && state.audioPlaying) audio.pause();
-    else if (!document.hidden && state.audioPlaying) audio.play().catch(() => {});
+    if (document.hidden && state.audioPlaying) { try { ctx && ctx.suspend(); } catch(e){} }
+    else if (!document.hidden && state.audioPlaying) { try { ctx && ctx.resume(); } catch(e){} }
   });
 }
 
