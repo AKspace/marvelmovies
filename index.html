@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MCU Timeline — Stark Industries</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -36,7 +37,7 @@
   </section>
 
   <!-- JARVIS HUD Strip -->
-  <div id="jarvis-hud">
+  <div id="jarvis-hud" aria-hidden="true">
     <div class="hud-left">
       <div class="arc-reactor-small" id="hud-reactor"></div>
       <span class="hud-label">J.A.R.V.I.S</span>
@@ -60,7 +61,7 @@
     <!-- Controls Bar -->
     <div id="controls">
       <div class="search-wrap">
-        <span class="search-icon">⌕</span>
+        <span class="search-icon" aria-hidden="true">⌕</span>
         <input type="text" id="search-input" placeholder="SEARCH ARCHIVE..." autocomplete="off">
       </div>
       <div class="phase-pills" id="phase-pills">
@@ -86,7 +87,7 @@
     </div>
 
     <!-- Infinity Stones Nav -->
-    <div id="stones-nav">
+    <nav id="stones-nav" aria-label="Filter by Infinity Stone">
       <button class="stone-btn active" data-stone="all">
         <span class="stone-gem all-stone"></span>
         <span class="stone-name">ALL</span>
@@ -115,7 +116,7 @@
         <span class="stone-gem soul-stone"></span>
         <span class="stone-name">SOUL</span>
       </button>
-    </div>
+    </nav>
 
     <!-- Timeline -->
     <div id="timeline"></div>
@@ -123,8 +124,8 @@
 
   <!-- Movie Modal -->
   <div id="modal-overlay">
-    <div id="modal">
-      <button id="modal-close">&#10005;</button>
+    <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button id="modal-close" aria-label="Close">&#10005;</button>
       <div id="modal-content"></div>
     </div>
   </div>
