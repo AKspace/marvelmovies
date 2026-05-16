@@ -330,6 +330,43 @@ img { display: block; max-width: 100%; }
 .phase-pill:hover { border-color: var(--cyan); color: var(--cyan); }
 .phase-pill.active { border-color: var(--red); color: var(--red); box-shadow: 0 0 10px rgba(227,0,15,0.3); }
 
+.type-pills { display: flex; gap: 0.5rem; }
+.type-pill {
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 3px;
+  color: rgba(255,255,255,0.5);
+  transition: all var(--transition);
+  background: var(--glass);
+}
+.type-pill:hover { border-color: var(--cyan); color: var(--cyan); }
+.type-pill.active { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px rgba(0,212,255,0.3); }
+
+.series-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: var(--cyan);
+  color: var(--dark);
+  font-family: var(--font-hud);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 2;
+}
+
+.episodes-count {
+  color: var(--cyan);
+  font-size: 0.8rem;
+  font-family: var(--font-hud);
+  letter-spacing: 0.05em;
+}
+
 #hero-select {
   background: var(--glass);
   border: 1px solid var(--glass-border);

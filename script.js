@@ -1262,10 +1262,15 @@ function getStoneBadgeColor(stone) {
 }
 
 function buildCardHTML(movie) {
+  const isSeries = (movie.type || "movie") === "series";
   const stoneBadge = movie.infinityStone
     ? `<span class="stone-badge" style="background:${getStoneBadgeColor(movie.infinityStone)}"></span>` : "";
-  const ratingHTML = movie.imdb
-    ? `<span class="card-rating">★ ${movie.imdb}</span>` : "";
+  const seriesBadge = isSeries
+    ? `<span class="series-badge">SERIES</span>` : "";
+  const ratingHTML = !isSeries && movie.imdb
+    ? `<span class="card-rating">★ ${movie.imdb}</span>`
+    : isSeries && movie.episodes
+      ? `<span class="episodes-count">▶ ${movie.episodes} eps</span>` : "";
   const heroTags = movie.heroes.slice(0, 2)
     .map(h => `<span class="hero-tag">${esc(h)}</span>`).join("");
   const classifiedStamp = movie.comingSoon
@@ -1283,6 +1288,7 @@ function buildCardHTML(movie) {
   return `
     <div class="movie-card${movie.comingSoon ? " coming-soon" : ""}" data-id="${movie.id}">
       ${stoneBadge}
+      ${seriesBadge}
       <span class="phase-badge">P${movie.phase}</span>
       ${posterHTML}
       ${classifiedStamp}
@@ -1330,7 +1336,7 @@ function renderTimeline() {
         <div class="phase-header">
           <span class="phase-title">${phaseNames[phase] || "PHASE " + phase}</span>
           <div class="phase-line"></div>
-          <span class="phase-count">${movies.length} FILM${movies.length !== 1 ? "S" : ""}</span>
+          <span class="phase-count">${movies.length} TITLE${movies.length !== 1 ? "S" : ""}</span>
         </div>
         <div class="cards-row">
           ${movies.map(buildCardHTML).join("")}
@@ -1485,6 +1491,8 @@ function openModal(movieId) {
         <div class="modal-meta">
           <span>🎬 ${esc(movie.director)}</span>
           <span>⏱ ${esc(movie.duration)}</span>
+          ${(movie.type || "movie") === "series" && movie.episodes
+            ? `<span>▶ ${movie.episodes} eps · ${movie.seasons} season${movie.seasons !== 1 ? "s" : ""}</span>` : ""}
         </div>
         <div class="modal-rating-wrap">
           ${ratingHTML}
