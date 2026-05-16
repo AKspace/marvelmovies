@@ -1188,6 +1188,7 @@ const state = {
   activePhase: "all",
   activeStone: null,
   activeHero: "all",
+  activeType: "all",
   searchQuery: "",
   modalOpen: null,
   audioPlaying: false
@@ -1209,8 +1210,9 @@ function updateHudReadout(visibleCount) {
   const stoneLabel = state.activeStone ? ` // STONE: ${state.activeStone.toUpperCase()}` : "";
   const phaseLabel = state.activePhase !== "all" ? ` // PHASE: ${state.activePhase}` : " // PHASE: ALL";
   const modeLabel = state.viewMode === "chronological" ? " // MODE: CHRONO" : " // MODE: RELEASE";
+  const typeLabel = state.activeType !== "all" ? ` // TYPE: ${state.activeType.toUpperCase()}` : "";
   document.getElementById("hud-readout").textContent =
-    `DISPLAYING: ${visibleCount} FILMS${phaseLabel}${stoneLabel}${modeLabel}`;
+    `DISPLAYING: ${visibleCount} TITLES${phaseLabel}${typeLabel}${stoneLabel}${modeLabel}`;
 }
 
 function updateHeroStat() {
@@ -1235,6 +1237,7 @@ function getFilteredMovies() {
       if (state.activePhase !== "all" && m.phase !== Number(state.activePhase)) return false;
       if (state.activeStone && m.infinityStone !== state.activeStone) return false;
       if (state.activeHero !== "all" && !m.heroes.includes(state.activeHero)) return false;
+      if (state.activeType !== "all" && (m.type || "movie") !== state.activeType) return false;
       if (q && !m.title.toLowerCase().includes(q) &&
                !m.description.toLowerCase().includes(q) &&
                !m.director.toLowerCase().includes(q) &&
@@ -1358,6 +1361,15 @@ function observeCards() {
 function wireControls() {
   document.getElementById("search-input").addEventListener("input", e => {
     state.searchQuery = e.target.value;
+    renderTimeline();
+  });
+
+  document.getElementById("type-pills").addEventListener("click", e => {
+    const pill = e.target.closest(".type-pill");
+    if (!pill) return;
+    document.querySelectorAll(".type-pill").forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    state.activeType = pill.dataset.type;
     renderTimeline();
   });
 
