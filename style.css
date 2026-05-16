@@ -575,7 +575,7 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 .stone-badge {
   position: absolute;
   top: 0.5rem;
-  left: 0.5rem;
+  right: 0.5rem;
   width: 18px; height: 22px;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
