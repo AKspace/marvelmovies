@@ -1310,7 +1310,7 @@ function renderTimeline() {
   updateHudReadout(filtered.length);
 
   if (filtered.length === 0) {
-    timeline.innerHTML = `<div class="no-results">NO FILMS MATCH CURRENT PARAMETERS</div>`;
+    timeline.innerHTML = `<div class="no-results">NO TITLES MATCH CURRENT PARAMETERS</div>`;
     return;
   }
 
